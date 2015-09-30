@@ -1,4 +1,10 @@
 apply plugin: 'groovy'
+apply plugin: 'maven-publish'
+
+
+group = 'com.meituan.gradle'
+version = '0.1'
+description = 'A Gradle plugin to do AspectJ binary weaving in the way of Android class -> dex transform. It works as an augment for Android plugin'
 
 repositories {
     jcenter()
@@ -10,4 +16,53 @@ dependencies {
     compile localGroovy()
     compile 'com.android.tools.build:gradle:1.4.0-beta2'
     compile 'org.aspectj:aspectjtools:1.8.6'
+}
+
+// publish
+final boolean DEBUG = false;
+
+task docJar(type: Jar, dependsOn: javadoc) {
+    from tasks.javadoc.destinationDir
+    classifier 'doc'
+}
+
+task sourceJar(type: Jar) {
+    from sourceSets.main.allSource
+    classifier 'sources'
+}
+
+def isSnapshot() {
+    return version.endsWith("SNAPSHOT")
+}
+
+publishing {
+    repositories {
+        maven {
+            if (!DEBUG) {
+                if (isSnapshot()) {
+                    url mavenSnapshotRepo
+                } else {
+                    url mavenReleaseRepo
+                }
+                credentials {
+                    username = mavenUsername
+                    password = mavenPassword
+                }
+            } else {
+                url "${buildDir}/libs"
+            }
+        }
+    }
+
+    publications {
+        aspectj(MavenPublication) {
+            from components.java
+            artifactId = 'aspectj'
+            artifact docJar
+            artifact sourceJar
+            pom.withXml {
+                asNode().appendNode('description', '${description}')
+            }
+        }
+    }
 }
