@@ -5,7 +5,9 @@ import com.android.build.gradle.AppExtension;
 import com.android.build.gradle.internal.TaskManager;
 import com.android.build.gradle.internal.pipeline.TransformManager;
 import com.android.build.transform.api.CombinedTransform;
+import com.android.build.transform.api.Context;
 import com.android.build.transform.api.ScopedContent;
+import com.android.build.transform.api.Transform;
 import com.android.build.transform.api.TransformException;
 import com.android.build.transform.api.TransformInput;
 import com.android.build.transform.api.TransformOutput;
@@ -41,7 +43,7 @@ import java.util.Set;
  *
  * <p>Created by Xiz on 9/21, 2015.</p>
  */
-public class AspectJTransform implements CombinedTransform {
+public class AspectJTransform extends Transform implements CombinedTransform {
     private Project project;
 
     public AspectJTransform(Project project) {
@@ -49,7 +51,7 @@ public class AspectJTransform implements CombinedTransform {
     }
 
     @Override
-    public void transform(Collection<TransformInput> inputs, Collection<TransformInput> referencedInputs, TransformOutput output, boolean isIncremental) throws IOException, TransformException, InterruptedException {
+    public void transform(Context context, Collection<TransformInput> inputs, Collection<TransformInput> referencedInputs, TransformOutput output, boolean isIncremental) throws IOException, TransformException, InterruptedException {
         // calculate bytecode paths
         List<File> files = Lists.newArrayList();
         for (TransformInput input : inputs) {
@@ -151,12 +153,6 @@ public class AspectJTransform implements CombinedTransform {
     @Override
     public Set<ScopedContent.Scope> getReferencedScopes() {
         return TransformManager.EMPTY_SCOPES;
-    }
-
-    @NonNull
-    @Override
-    public Type getTransformType() {
-        return Type.COMBINED;
     }
 
     @NonNull
