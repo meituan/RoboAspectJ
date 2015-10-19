@@ -2,7 +2,6 @@ package com.meituan.android.aspectj;
 
 import com.android.annotations.NonNull;
 import com.android.build.gradle.AppExtension;
-import com.android.build.gradle.internal.TaskManager;
 import com.android.build.gradle.internal.pipeline.TransformManager;
 import com.android.build.transform.api.CombinedTransform;
 import com.android.build.transform.api.Context;
@@ -15,12 +14,10 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 import org.aspectj.bridge.IMessage;
 import org.aspectj.bridge.MessageHandler;
 import org.aspectj.tools.ajc.Main;
-import org.bouncycastle.crypto.tls.TlsExtensionsUtils;
 import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
 
