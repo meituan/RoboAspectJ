@@ -81,7 +81,7 @@ public class AspectJTransform extends Transform implements CombinedTransform {
 
         // assemble compile options
         String[] args = {
-                "-1.5",
+                "-1.7",
                 "-showWeaveInfo",
                 "-encoding", "UTF-8",
                 "-inpath", inpath,
