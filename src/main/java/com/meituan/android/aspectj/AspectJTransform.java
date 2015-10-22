@@ -13,7 +13,9 @@ import com.android.build.transform.api.TransformOutput;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import org.aspectj.bridge.IMessage;
 import org.aspectj.bridge.MessageHandler;
@@ -28,6 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.android.build.transform.api.ScopedContent.ContentType.CLASSES;
+
 /**
  * <p>The main work of this {@link com.android.build.transform.api.Transform} implementation is to
  * do the AspectJ binary weaving at build time.</p>
@@ -41,6 +45,15 @@ import java.util.Set;
  * <p>Created by Xiz on 9/21, 2015.</p>
  */
 public class AspectJTransform extends Transform implements CombinedTransform {
+    public static final Set<ScopedContent.Scope> SCOPE_EMPTY = ImmutableSet.of();
+
+    public static final Set<ScopedContent.Scope> SCOPE_FULL_PROJECT = Sets.immutableEnumSet(
+            ScopedContent.Scope.PROJECT,
+            ScopedContent.Scope.PROJECT_LOCAL_DEPS,
+            ScopedContent.Scope.SUB_PROJECTS,
+            ScopedContent.Scope.SUB_PROJECTS_LOCAL_DEPS,
+            ScopedContent.Scope.EXTERNAL_LIBRARIES);
+
     private Project project;
 
     public AspectJTransform(Project project) {
@@ -85,7 +98,6 @@ public class AspectJTransform extends Transform implements CombinedTransform {
                 "-showWeaveInfo",
                 "-encoding", "UTF-8",
                 "-inpath", inpath,
-                "-aspectpath", inpath,
                 "-d", output.getOutFile().getAbsolutePath(),
                 "-bootclasspath", bootpath};
 
@@ -125,19 +137,19 @@ public class AspectJTransform extends Transform implements CombinedTransform {
     @NonNull
     @Override
     public Set<ScopedContent.ContentType> getInputTypes() {
-        return TransformManager.CONTENT_CLASS;
+        return Sets.immutableEnumSet(CLASSES);
     }
 
     @NonNull
     @Override
     public Set<ScopedContent.ContentType> getOutputTypes() {
-        return TransformManager.CONTENT_CLASS;
+        return Sets.immutableEnumSet(CLASSES);
     }
 
     @NonNull
     @Override
     public Set<ScopedContent.Scope> getScopes() {
-        return TransformManager.SCOPE_FULL_PROJECT;
+        return SCOPE_FULL_PROJECT;
     }
 
     @NonNull
@@ -149,7 +161,7 @@ public class AspectJTransform extends Transform implements CombinedTransform {
     @NonNull
     @Override
     public Set<ScopedContent.Scope> getReferencedScopes() {
-        return TransformManager.EMPTY_SCOPES;
+        return SCOPE_EMPTY;
     }
 
     @NonNull
