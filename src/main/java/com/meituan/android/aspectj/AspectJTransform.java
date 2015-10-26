@@ -2,7 +2,6 @@ package com.meituan.android.aspectj;
 
 import com.android.annotations.NonNull;
 import com.android.build.gradle.AppExtension;
-import com.android.build.gradle.internal.pipeline.TransformManager;
 import com.android.build.transform.api.CombinedTransform;
 import com.android.build.transform.api.Context;
 import com.android.build.transform.api.ScopedContent;
