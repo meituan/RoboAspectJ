@@ -38,6 +38,8 @@ public class AspectJTransform extends Transform implements CombinedTransform {
             ScopedContent.Scope.EXTERNAL_LIBRARIES)
 
     private Project project
+    private ImmutableSet<String> excludedLibs
+
 
     public AspectJTransform(Project project) {
         this.project = project
@@ -45,6 +47,19 @@ public class AspectJTransform extends Transform implements CombinedTransform {
 
     @Override
     public void transform(Context context, Collection<TransformInput> inputs, Collection<TransformInput> referencedInputs, TransformOutput output, boolean isIncremental) throws IOException, TransformException, InterruptedException {
+        // resolve libs to be excluded
+        ImmutableSet.Builder<String> builder = new ImmutableSet.Builder()
+        project.android.applicationVariants.all {
+            variantData.variantConfiguration.allPackagedJars.each {
+                for (ExcludeRule rule : project.aspectj.excludeRules) {
+                    if (it.absolutePath.contains(File.separator + rule.group + File.separator + rule.module)) {
+                        builder.add(it.name + '-' + it.path.hashCode())
+                    }
+                }
+            }
+        }
+        excludedLibs = builder.build();
+
         // calculate bytecode files
         List<File> files = Lists.newArrayList()
         List<File> excluefiles = Lists.newArrayList()
@@ -53,7 +68,7 @@ public class AspectJTransform extends Transform implements CombinedTransform {
                 case ScopedContent.Format.JAR:
                 case ScopedContent.Format.SINGLE_FOLDER:
                     for (File file : input.files) {
-                        if (isFileExcluded(project.aspectj.excludeRules, file)) {
+                        if (isFileExcluded(file)) {
                             excluefiles.add(file)
                         } else {
                             files.add(file)
@@ -66,7 +81,7 @@ public class AspectJTransform extends Transform implements CombinedTransform {
                         File[] children = file.listFiles()
                         if (children != null) {
                             for (File child : children) {
-                                if (isFileExcluded(project.aspectj.excludeRules, file)) {
+                                if (isFileExcluded(file)) {
                                     excluefiles.add(file)
                                 } else {
                                     files.add(file)
@@ -195,12 +210,7 @@ public class AspectJTransform extends Transform implements CombinedTransform {
         return false
     }
 
-    protected static isFileExcluded(Set<ExcludeRule> rules, File file) {
-        for (ExcludeRule rule : rules) {
-            if (file.name.contains(rule.module)) {
-                return true
-            }
-        }
-        return false
+    protected boolean isFileExcluded(File file) {
+        return excludedLibs.contains(file.name)
     }
 }
