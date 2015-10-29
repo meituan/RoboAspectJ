@@ -1,6 +1,7 @@
 package com.meituan.android.aspectj;
 
 import com.android.build.gradle.AppPlugin
+import com.android.build.gradle.LibraryPlugin
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -30,13 +31,31 @@ import org.gradle.api.Project
  * <p>Created by Xiz on 9/21, 2015.</p>
  */
 class AspectJPlugin implements Plugin<Project> {
+    protected Project project;
 
     @Override
     public void apply(Project project) {
-        if (!project.plugins.hasPlugin(AppPlugin)) {
-            throw new GradleException("The android 'application' plugin is required.")
-        }
+        this.project = project;
 
+        checkAndroidPlugin()
+        configureProject()
+        createExtension()
+    }
+
+    protected void configureProject() {
         project.android.registerTransform(new AspectJTransform(project))
+        project.dependencies {
+            compile 'org.aspectj:aspectjrt:1.8.7'
+        }
+    }
+
+    protected void checkAndroidPlugin() {
+        if (!project.plugins.hasPlugin(AppPlugin) && !project.plugins.hasPlugin(LibraryPlugin)) {
+            throw new GradleException("The android 'application' or 'library' plugin is required.")
+        }
+    }
+
+    protected void createExtension() {
+        project.extensions.create('aspectj', AspectJExtension)
     }
 }
