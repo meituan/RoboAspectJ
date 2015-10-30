@@ -50,8 +50,8 @@ class AspectJPlugin implements Plugin<Project> {
     }
 
     protected void checkAndroidPlugin() {
-        if (!project.plugins.hasPlugin(AppPlugin) && !project.plugins.hasPlugin(LibraryPlugin)) {
-            throw new GradleException("The android 'application' or 'library' plugin is required.")
+        if (!project.plugins.hasPlugin(AppPlugin)) {
+            throw new GradleException("The android 'application' plugin is required.")
         }
     }
 

@@ -38,7 +38,7 @@ public class AspectJTransform extends Transform implements CombinedTransform {
             ScopedContent.Scope.EXTERNAL_LIBRARIES)
 
     private Project project
-    private ImmutableSet<String> excludedLibs
+    private ImmutableSet<String> excludedFilePaths
 
 
     public AspectJTransform(Project project) {
@@ -49,61 +49,69 @@ public class AspectJTransform extends Transform implements CombinedTransform {
     public void transform(Context context, Collection<TransformInput> inputs, Collection<TransformInput> referencedInputs, TransformOutput output, boolean isIncremental) throws IOException, TransformException, InterruptedException {
         // resolve libs to be excluded
         ImmutableSet.Builder<String> builder = new ImmutableSet.Builder()
+        String javaRtPath
         project.android.applicationVariants.all {
+            String javaRt = Joiner.on(File.separator).join(['jre', 'lib', 'rt.jar'])
+            for (String classpath : javaCompiler.classpath.asPath.split(File.pathSeparator)) {
+                if (classpath.contains(javaRt)) {
+                    javaRtPath = classpath
+                }
+            }
+
             variantData.variantConfiguration.allPackagedJars.each {
                 for (ExcludeRule rule : project.aspectj.excludeRules) {
-                    if (it.absolutePath.contains(File.separator + rule.group + File.separator + rule.module)) {
+                    String excludeLib = Joiner.on(File.separator).join([rule.group, rule.module])
+                    if (it.absolutePath.contains(excludeLib)) {
                         builder.add(it.name + '-' + it.path.hashCode())
                     }
                 }
             }
         }
-        excludedLibs = builder.build();
+        excludedFilePaths = builder.build();
 
-        // calculate bytecode files
-        List<File> files = Lists.newArrayList()
-        List<File> excluefiles = Lists.newArrayList()
+        // categorize bytecode files
+        List<File> files = Lists.newArrayList();
+        List<File> excludedFiles = Lists.newArrayList();
         for (TransformInput input : inputs) {
             switch (input.getFormat()) {
                 case ScopedContent.Format.JAR:
                 case ScopedContent.Format.SINGLE_FOLDER:
                     for (File file : input.files) {
                         if (isFileExcluded(file)) {
-                            excluefiles.add(file)
+                            excludedFiles.add(file)
                         } else {
                             files.add(file)
 
                         }
                     }
-                    break
+                    break;
                 case ScopedContent.Format.MULTI_FOLDER:
                     for (File file : input.files) {
-                        File[] children = file.listFiles()
+                        File[] children = file.listFiles();
                         if (children != null) {
                             for (File child : children) {
                                 if (isFileExcluded(file)) {
-                                    excluefiles.add(file)
+                                    excludedFiles.add(file)
                                 } else {
                                     files.add(file)
-
                                 }
                             }
                         }
                     }
-                    break
+                    break;
                 default:
-                    throw new RuntimeException("Unsupported ScopedContent.Format value: " + input.format.name)
+                    throw new RuntimeException("Unsupported ScopedContent.Format value: " + input.format.name);
             }
         }
 
-        /// copy excluded files for other transforms' usage later
-        for (File file : excluefiles) {
+        // copy excluded files for other transforms' usage later
+        for (File file : excludedFiles) {
             FileUtils.copyDirectory(file, output.outFile);
         }
 
         //evaluate class paths
         final String inpath = Joiner.on(File.pathSeparator).join(files)
-        final String classpath = Joiner.on(File.pathSeparator).join(excluefiles)
+        final String classpath = Joiner.on(File.pathSeparator).join(project.aspectj.rxJavaEnabled ? [*excludedFiles, javaRtPath] : excludedFiles)
         final String bootpath = Joiner.on(File.pathSeparator).join(project.android.bootClasspath)
 
         // assemble compile options
@@ -114,31 +122,35 @@ public class AspectJTransform extends Transform implements CombinedTransform {
                 "-encoding", project.aspectj.compileOptions.encoding,
                 "-inpath", inpath,
                 "-d", output.outFile.absolutePath,
-                "-bootclasspath", bootpath]
+                "-bootclasspath", bootpath];
 
-        // append excluded files
+        // append classpath argument if any
         if (!Strings.isNullOrEmpty(classpath)) {
             args << '-classpath'
             args << classpath
         }
 
-        // run compile
+        // run compilation
         MessageHandler handler = new MessageHandler(true);
-        new Main().run(args as String[], handler)
+        new Main().run(args as String[], handler);
 
-        // print compile msg
-        Logger logger = project.getLogger()
+        // log compile
+        Logger logger = project.getLogger();
         for (IMessage message : handler.getMessages(null, true)) {
             // level up weave info log for debug
-//                logger.quiet(message.getMessage())
+//            logger.quiet(message.getMessage());
             if (IMessage.ERROR.isSameOrLessThan(message.getKind())) {
-                logger.error(message.getMessage(), message.getThrown())
+                if (null != message.getThrown()) {
+                    logger.error(message.getMessage(), message.getThrown());
+                } else {
+                    logger.error(message.getMessage());
+                }
             } else if (IMessage.WARNING.isSameOrLessThan(message.getKind())) {
-                logger.warn(message.getMessage())
+                logger.warn(message.getMessage());
             } else if (IMessage.DEBUG.isSameOrLessThan(message.getKind())) {
-                logger.debug(message.getMessage())
+                logger.debug(message.getMessage());
             } else {
-                logger.info(message.getMessage())
+                logger.info(message.getMessage());
             }
         }
     }
@@ -211,6 +223,6 @@ public class AspectJTransform extends Transform implements CombinedTransform {
     }
 
     protected boolean isFileExcluded(File file) {
-        return excludedLibs.contains(file.name)
+        return excludedFilePaths.contains(file.name)
     }
 }

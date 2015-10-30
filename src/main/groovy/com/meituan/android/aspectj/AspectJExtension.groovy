@@ -15,6 +15,8 @@ class AspectJExtension {
 
     private CompileOptions compileOptions = new CompileOptions();
 
+    private boolean rxJavaEnabled;
+
     public void exclude(Map<String, String> excludeProperties) {
         excludeRuleContainer.add(excludeProperties);
     }
@@ -35,4 +37,11 @@ class AspectJExtension {
         return compileOptions;
     }
 
+    boolean getRxJavaEnabled() {
+        return rxJavaEnabled
+    }
+
+    void setRxJavaEnabled(boolean rxJavaEnabled) {
+        this.rxJavaEnabled = rxJavaEnabled
+    }
 }
