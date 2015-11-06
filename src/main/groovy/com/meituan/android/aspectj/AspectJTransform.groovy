@@ -47,6 +47,8 @@ public class AspectJTransform extends Transform implements CombinedTransform {
 
     @Override
     public void transform(Context context, Collection<TransformInput> inputs, Collection<TransformInput> referencedInputs, TransformOutput output, boolean isIncremental) throws IOException, TransformException, InterruptedException {
+        Logger logger = project.getLogger()
+
         // resolve libs to be excluded
         ImmutableSet.Builder<String> builder = new ImmutableSet.Builder()
         String javaRtPath
@@ -63,15 +65,19 @@ public class AspectJTransform extends Transform implements CombinedTransform {
                     String excludeLib = Joiner.on(File.separator).join([rule.group, rule.module])
                     if (it.absolutePath.contains(excludeLib)) {
                         builder.add(it.name + '-' + it.path.hashCode())
+                        logger.quiet("Note:The dependency '${it.name}' in variant '${variantData.name}' " +
+                                "is excluded in AspectJ Weaving by rule " +
+                                "[group:${rule.group}, module:${rule.module}] " +
+                                "as it will be used as classpath instead. ")
                     }
                 }
             }
         }
-        excludedFilePaths = builder.build();
+        excludedFilePaths = builder.build()
 
         // categorize bytecode files
-        List<File> files = Lists.newArrayList();
-        List<File> excludedFiles = Lists.newArrayList();
+        List<File> files = Lists.newArrayList()
+        List<File> excludedFiles = Lists.newArrayList()
         for (TransformInput input : inputs) {
             switch (input.getFormat()) {
                 case ScopedContent.Format.JAR:
@@ -84,10 +90,10 @@ public class AspectJTransform extends Transform implements CombinedTransform {
 
                         }
                     }
-                    break;
+                    break
                 case ScopedContent.Format.MULTI_FOLDER:
                     for (File file : input.files) {
-                        File[] children = file.listFiles();
+                        File[] children = file.listFiles()
                         if (children != null) {
                             for (File child : children) {
                                 if (isFileExcluded(file)) {
@@ -98,15 +104,15 @@ public class AspectJTransform extends Transform implements CombinedTransform {
                             }
                         }
                     }
-                    break;
+                    break
                 default:
-                    throw new RuntimeException("Unsupported ScopedContent.Format value: " + input.format.name);
+                    throw new RuntimeException("Unsupported ScopedContent.Format value: " + input.format.name)
             }
         }
 
         // copy excluded files for other transforms' usage later
         for (File file : excludedFiles) {
-            FileUtils.copyDirectory(file, output.outFile);
+            FileUtils.copyDirectory(file, output.outFile)
         }
 
         //evaluate class paths
@@ -122,7 +128,7 @@ public class AspectJTransform extends Transform implements CombinedTransform {
                 "-encoding", project.aspectj.compileOptions.encoding,
                 "-inpath", inpath,
                 "-d", output.outFile.absolutePath,
-                "-bootclasspath", bootpath];
+                "-bootclasspath", bootpath]
 
         // append classpath argument if any
         if (!Strings.isNullOrEmpty(classpath)) {
@@ -131,26 +137,25 @@ public class AspectJTransform extends Transform implements CombinedTransform {
         }
 
         // run compilation
-        MessageHandler handler = new MessageHandler(true);
-        new Main().run(args as String[], handler);
+        MessageHandler handler = new MessageHandler(true)
+        new Main().run(args as String[], handler)
 
         // log compile
-        Logger logger = project.getLogger();
         for (IMessage message : handler.getMessages(null, true)) {
             // level up weave info log for debug
-//            logger.quiet(message.getMessage());
+//            logger.quiet(message.getMessage())
             if (IMessage.ERROR.isSameOrLessThan(message.getKind())) {
                 if (null != message.getThrown()) {
-                    logger.error(message.getMessage(), message.getThrown());
+                    logger.error(message.getMessage(), message.getThrown())
                 } else {
-                    logger.error(message.getMessage());
+                    logger.error(message.getMessage())
                 }
             } else if (IMessage.WARNING.isSameOrLessThan(message.getKind())) {
-                logger.warn(message.getMessage());
+                logger.warn(message.getMessage())
             } else if (IMessage.DEBUG.isSameOrLessThan(message.getKind())) {
-                logger.debug(message.getMessage());
+                logger.debug(message.getMessage())
             } else {
-                logger.info(message.getMessage());
+                logger.info(message.getMessage())
             }
         }
     }
