@@ -111,7 +111,7 @@ public class AspectJTransform extends Transform implements CombinedTransform {
 
         //evaluate class paths
         final String inpath = Joiner.on(File.pathSeparator).join(files)
-        final String classpath = Joiner.on(File.pathSeparator).join(project.aspectj.rxJavaEnabled ? [*excludedFiles, javaRtPath] : excludedFiles)
+        final String classpath = Joiner.on(File.pathSeparator).join(project.aspectj.javartNeeded ? [*excludedFiles, javaRtPath] : excludedFiles)
         final String bootpath = Joiner.on(File.pathSeparator).join(project.android.bootClasspath)
 
         // assemble compile options

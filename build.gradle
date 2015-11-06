@@ -3,7 +3,7 @@ apply plugin: 'maven-publish'
 
 
 group = 'com.meituan.gradle'
-version = '0.7'
+version = '0.7.1'
 description = 'A Gradle plugin to do AspectJ binary weaving in the way of Android class -> dex transform. It works as an augment for Android plugin'
 
 repositories {
@@ -16,7 +16,7 @@ dependencies {
     compile localGroovy()
     compile 'commons-io:commons-io:2.4'
     compile 'com.android.tools.build:gradle:1.4.0-beta6'
-    compile 'org.aspectj:aspectjtools:1.8.6'
+    compile 'org.aspectj:aspectjtools:1.8.7'
 }
 
 // publish

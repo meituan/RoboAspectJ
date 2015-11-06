@@ -15,7 +15,8 @@ class AspectJExtension {
 
     private CompileOptions compileOptions = new CompileOptions();
 
-    private boolean rxJavaEnabled;
+    // when rxjava in use, ajc requires jre rt.java as its classpath. Or an error will be issued.
+    private boolean javartNeeded = false;
 
     public void exclude(Map<String, String> excludeProperties) {
         excludeRuleContainer.add(excludeProperties);
@@ -37,11 +38,11 @@ class AspectJExtension {
         return compileOptions;
     }
 
-    boolean getRxJavaEnabled() {
-        return rxJavaEnabled
+    boolean getJavartNeeded() {
+        return javartNeeded
     }
 
-    void setRxJavaEnabled(boolean rxJavaEnabled) {
-        this.rxJavaEnabled = rxJavaEnabled
+    void setJavartNeeded(boolean javartNeeded) {
+        this.javartNeeded = javartNeeded
     }
 }
