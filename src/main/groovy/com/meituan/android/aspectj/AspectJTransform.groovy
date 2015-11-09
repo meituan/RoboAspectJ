@@ -9,6 +9,7 @@ import org.apache.commons.io.FileUtils
 import org.aspectj.bridge.IMessage
 import org.aspectj.bridge.MessageHandler
 import org.aspectj.tools.ajc.Main
+import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ExcludeRule
 import org.gradle.api.logging.Logger
@@ -65,7 +66,7 @@ public class AspectJTransform extends Transform implements CombinedTransform {
                     String excludeLib = Joiner.on(File.separator).join([rule.group, rule.module])
                     if (it.absolutePath.contains(excludeLib)) {
                         builder.add(it.name + '-' + it.path.hashCode())
-                        logger.quiet("Note:The dependency '${it.name}' in variant '${variantData.name}' " +
+                        logger.info("Note:The dependency '${it.name}' in variant '${variantData.name}' " +
                                 "is excluded in AspectJ Weaving by rule " +
                                 "[group:${rule.group}, module:${rule.module}] " +
                                 "as it will be used as classpath instead. ")
@@ -145,17 +146,14 @@ public class AspectJTransform extends Transform implements CombinedTransform {
             // level up weave info log for debug
 //            logger.quiet(message.getMessage())
             if (IMessage.ERROR.isSameOrLessThan(message.getKind())) {
-                if (null != message.getThrown()) {
-                    logger.error(message.getMessage(), message.getThrown())
-                } else {
-                    logger.error(message.getMessage())
-                }
+                logger.error(message.getMessage(), message.getThrown())
+                throw new GradleException(message.message, message.thrown)
             } else if (IMessage.WARNING.isSameOrLessThan(message.getKind())) {
                 logger.warn(message.getMessage())
             } else if (IMessage.DEBUG.isSameOrLessThan(message.getKind())) {
-                logger.debug(message.getMessage())
-            } else {
                 logger.info(message.getMessage())
+            } else {
+                logger.debug(message.getMessage())
             }
         }
     }
