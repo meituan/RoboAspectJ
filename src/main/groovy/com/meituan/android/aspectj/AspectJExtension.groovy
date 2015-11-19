@@ -1,15 +1,14 @@
 package com.meituan.android.aspectj
 
 import com.android.build.gradle.internal.CompileOptions
-import org.gradle.api.Action;
+import org.gradle.api.Action
+import org.gradle.api.artifacts.ExcludeRule
+import org.gradle.api.artifacts.ExcludeRuleContainer
+import org.gradle.api.internal.artifacts.DefaultExcludeRuleContainer;
 
 /**
  * Created by Xiz on Oct 28, 2015.
  */
-import org.gradle.api.artifacts.ExcludeRule
-import org.gradle.api.artifacts.ExcludeRuleContainer
-import org.gradle.api.internal.artifacts.DefaultExcludeRuleContainer
-
 class AspectJExtension {
     private ExcludeRuleContainer excludeRuleContainer = new DefaultExcludeRuleContainer();
 

@@ -1,10 +1,11 @@
 package com.meituan.android.aspectj
 
 import com.android.annotations.NonNull
-import com.android.build.transform.api.*
+import com.android.build.api.transform.*
 import com.google.common.base.Joiner
 import com.google.common.base.Strings
-import com.google.common.collect.*
+import com.google.common.collect.Lists
+import com.google.common.collect.Sets
 import org.apache.commons.io.FileUtils
 import org.aspectj.bridge.IMessage
 import org.aspectj.bridge.MessageHandler
@@ -14,10 +15,8 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.ExcludeRule
 import org.gradle.api.logging.Logger
 
-import static com.android.build.transform.api.ScopedContent.ContentType.CLASSES
-
 /**
- * <p>The main work of this {@link com.android.build.transform.api.Transform} implementation is to
+ * <p>The main work of this {@link com.android.build.api.transform.Transform} implementation is to
  * do the AspectJ binary weaving at build time.</p>
  *
  * <p>Tranform system in android plugin offers us a good timing to manipulate byte codes. So we
@@ -28,31 +27,28 @@ import static com.android.build.transform.api.ScopedContent.ContentType.CLASSES
  *
  * <p>Created by Xiz on 9/21, 2015.</p>
  */
-public class AspectJTransform extends Transform implements CombinedTransform {
-    public static final Set<ScopedContent.Scope> SCOPE_EMPTY = ImmutableSet.of()
-
-    public static final Set<ScopedContent.Scope> SCOPE_FULL_PROJECT = Sets.immutableEnumSet(
-            ScopedContent.Scope.PROJECT,
-            ScopedContent.Scope.PROJECT_LOCAL_DEPS,
-            ScopedContent.Scope.SUB_PROJECTS,
-            ScopedContent.Scope.SUB_PROJECTS_LOCAL_DEPS,
-            ScopedContent.Scope.EXTERNAL_LIBRARIES)
+public class AspectJTransform extends Transform {
+    private static final Set<QualifiedContent.ContentType> COTNENT_CLASS = Sets.immutableEnumSet(QualifiedContent.DefaultContentType.CLASSES)
+    private static final Set<QualifiedContent.Scope> SCOPE_FULL_PROJECT = Sets.immutableEnumSet(
+            QualifiedContent.Scope.PROJECT,
+            QualifiedContent.Scope.PROJECT_LOCAL_DEPS,
+            QualifiedContent.Scope.SUB_PROJECTS,
+            QualifiedContent.Scope.SUB_PROJECTS_LOCAL_DEPS,
+            QualifiedContent.Scope.EXTERNAL_LIBRARIES)
 
     private Project project
-    private ImmutableSet<String> excludedFilePaths
-
 
     public AspectJTransform(Project project) {
         this.project = project
     }
 
     @Override
-    public void transform(Context context, Collection<TransformInput> inputs, Collection<TransformInput> referencedInputs, TransformOutput output, boolean isIncremental) throws IOException, TransformException, InterruptedException {
+    void transform(Context context, Collection<TransformInput> inputs, Collection<TransformInput> referencedInputs, TransformOutputProvider outputProvider, boolean isIncremental) throws IOException, TransformException, InterruptedException {
         Logger logger = project.getLogger()
+        File output = null;
 
-        // resolve libs to be excluded
-        ImmutableSet.Builder<String> builder = new ImmutableSet.Builder()
-        String javaRtPath
+        // grab java runtime jar
+        String javaRtPath = null
         project.android.applicationVariants.all {
             String javaRt = Joiner.on(File.separator).join(['jre', 'lib', 'rt.jar'])
             for (String classpath : javaCompiler.classpath.asPath.split(File.pathSeparator)) {
@@ -60,65 +56,44 @@ public class AspectJTransform extends Transform implements CombinedTransform {
                     javaRtPath = classpath
                 }
             }
-
-            variantData.variantConfiguration.allPackagedJars.each {
-                for (ExcludeRule rule : project.aspectj.excludeRules) {
-                    String excludeLib = Joiner.on(File.separator).join([rule.group, rule.module])
-                    if (it.absolutePath.contains(excludeLib)) {
-                        builder.add(it.name + '-' + it.path.hashCode())
-                        logger.info("Note:The dependency '${it.name}' in variant '${variantData.name}' " +
-                                "is excluded in AspectJ Weaving by rule " +
-                                "[group:${rule.group}, module:${rule.module}] " +
-                                "as it will be used as classpath instead. ")
-                    }
-                }
-            }
         }
-        excludedFilePaths = builder.build()
 
         // categorize bytecode files
         List<File> files = Lists.newArrayList()
-        List<File> excludedFiles = Lists.newArrayList()
+        List<File> excludeFiles = Lists.newArrayList()
         for (TransformInput input : inputs) {
-            switch (input.getFormat()) {
-                case ScopedContent.Format.JAR:
-                case ScopedContent.Format.SINGLE_FOLDER:
-                    for (File file : input.files) {
-                        if (isFileExcluded(file)) {
-                            excludedFiles.add(file)
-                        } else {
-                            files.add(file)
+            for (DirectoryInput folder : input.directoryInputs) {
+                if (isFileExcluded(folder.file)) {
+                    excludeFiles.add(folder.file)
+                    output = outputProvider.getContentLocation(folder.name, outputTypes, scopes, Format.DIRECTORY)
+                    FileUtils.copyDirectoryToDirectory(folder.file, output)
+                } else {
+                    files.add(folder.file)
 
-                        }
-                    }
-                    break
-                case ScopedContent.Format.MULTI_FOLDER:
-                    for (File file : input.files) {
-                        File[] children = file.listFiles()
-                        if (children != null) {
-                            for (File child : children) {
-                                if (isFileExcluded(file)) {
-                                    excludedFiles.add(file)
-                                } else {
-                                    files.add(file)
-                                }
-                            }
-                        }
-                    }
-                    break
-                default:
-                    throw new RuntimeException("Unsupported ScopedContent.Format value: " + input.format.name)
+                }
+            }
+
+            for (JarInput jar : input.jarInputs) {
+                if (isFileExcluded(jar.file)) {
+                    excludeFiles.add(jar.file)
+                    output = outputProvider.getContentLocation(jar.name.replace(".jar", ""), outputTypes, scopes, Format.JAR)
+                    FileUtils.copyFile(jar.file, output)
+                } else {
+                    files.add(jar.file)
+
+                }
             }
         }
 
         // copy excluded files for other transforms' usage later
-        for (File file : excludedFiles) {
-            FileUtils.copyDirectory(file, output.outFile)
-        }
+        output = outputProvider.getContentLocation(name, outputTypes, scopes, Format.DIRECTORY);
 
         //evaluate class paths
         final String inpath = Joiner.on(File.pathSeparator).join(files)
-        final String classpath = Joiner.on(File.pathSeparator).join(project.aspectj.javartNeeded ? [*excludedFiles, javaRtPath] : excludedFiles)
+        final String classpath = Joiner.on(File.pathSeparator).join(
+                project.aspectj.javartNeeded && !Strings.isNullOrEmpty(javaRtPath) ?
+                        [*excludeFiles.collect { it.absolutePath }, javaRtPath] :
+                        excludeFiles.collect { it.absolutePath })
         final String bootpath = Joiner.on(File.pathSeparator).join(project.android.bootClasspath)
 
         // assemble compile options
@@ -128,7 +103,7 @@ public class AspectJTransform extends Transform implements CombinedTransform {
                 "-showWeaveInfo",
                 "-encoding", project.aspectj.compileOptions.encoding,
                 "-inpath", inpath,
-                "-d", output.outFile.absolutePath,
+                "-d", output.absolutePath,
                 "-bootclasspath", bootpath]
 
         // append classpath argument if any
@@ -161,71 +136,35 @@ public class AspectJTransform extends Transform implements CombinedTransform {
     @NonNull
     @Override
     public String getName() {
-        return "aspectJ"
+        "aspectJ"
     }
 
     @NonNull
     @Override
-    public Set<ScopedContent.ContentType> getInputTypes() {
-        return Sets.immutableEnumSet(CLASSES)
+    public Set<QualifiedContent.ContentType> getInputTypes() {
+        COTNENT_CLASS
     }
 
     @NonNull
     @Override
-    public Set<ScopedContent.ContentType> getOutputTypes() {
-        return Sets.immutableEnumSet(CLASSES)
-    }
-
-    @NonNull
-    @Override
-    public Set<ScopedContent.Scope> getScopes() {
-        return SCOPE_FULL_PROJECT
-    }
-
-    @NonNull
-    @Override
-    public ScopedContent.Format getOutputFormat() {
-        return ScopedContent.Format.SINGLE_FOLDER
-    }
-
-    @NonNull
-    @Override
-    public Set<ScopedContent.Scope> getReferencedScopes() {
-        return SCOPE_EMPTY
-    }
-
-    @NonNull
-    @Override
-    public Collection<File> getSecondaryFileInputs() {
-        return ImmutableList.of()
-    }
-
-    @NonNull
-    @Override
-    public Collection<File> getSecondaryFileOutputs() {
-        return ImmutableList.of()
-    }
-
-    @NonNull
-    @Override
-    public Collection<File> getSecondaryFolderOutputs() {
-        return ImmutableList.of()
-    }
-
-    @NonNull
-    @Override
-    public Map<String, Object> getParameterInputs() {
-        return ImmutableMap.of()
+    public Set<QualifiedContent.Scope> getScopes() {
+        SCOPE_FULL_PROJECT
     }
 
     @Override
     public boolean isIncremental() {
         // can't be incremental
         // because java bytecode and aspect bytecode are woven across each other
-        return false
+        false
     }
 
     protected boolean isFileExcluded(File file) {
-        return excludedFilePaths.contains(file.name)
+        for (ExcludeRule rule : project.aspectj.excludeRules) {
+            if (file.absolutePath.contains(Joiner.on(File.separator).join([rule.group, rule.module]))) {
+                return true
+            }
+        }
+        return false
     }
+
 }

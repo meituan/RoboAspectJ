@@ -1,7 +1,5 @@
 package com.meituan.android.aspectj;
 
-import com.android.build.gradle.AppPlugin
-import com.android.build.gradle.LibraryPlugin
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -20,11 +18,9 @@ import org.gradle.api.Project
  * <h3>Prerequisite</h3>
  * <ul>
  *
- * <li>Add aspect runtime dependency, as <code>compile 'org.aspectj:aspectjrt:1.8.6'</code></li>
- *
  * <li>Write your aspects in Aspect Annotation (@Aspect) syntax</li>
  *
- * <li>Apply android gradle plugin 1.4.0-beta2 or higher.</li>
+ * <li>Apply android gradle plugin 1.5.0 or higher.</li>
  *
  * </ul>
  *
@@ -50,7 +46,7 @@ class AspectJPlugin implements Plugin<Project> {
     }
 
     protected void checkAndroidPlugin() {
-        if (!project.plugins.hasPlugin(AppPlugin)) {
+        if (!project.plugins.findPlugin('com.android.application')) {
             throw new GradleException("The android 'application' plugin is required.")
         }
     }
