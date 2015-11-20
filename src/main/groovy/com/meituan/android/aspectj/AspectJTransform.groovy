@@ -65,7 +65,8 @@ public class AspectJTransform extends Transform {
             for (DirectoryInput folder : input.directoryInputs) {
                 if (isFileExcluded(folder.file)) {
                     excludeFiles.add(folder.file)
-                    output = outputProvider.getContentLocation(folder.name, outputTypes, scopes, Format.DIRECTORY)
+                    String outputFileName = folder.name + '-' + folder.file.path.hashCode()
+                    output = outputProvider.getContentLocation(outputFileName, outputTypes, scopes, Format.DIRECTORY)
                     FileUtils.copyDirectoryToDirectory(folder.file, output)
                 } else {
                     files.add(folder.file)
@@ -76,7 +77,8 @@ public class AspectJTransform extends Transform {
             for (JarInput jar : input.jarInputs) {
                 if (isFileExcluded(jar.file)) {
                     excludeFiles.add(jar.file)
-                    output = outputProvider.getContentLocation(jar.name.replace(".jar", ""), outputTypes, scopes, Format.JAR)
+                    String outputFileName = jar.name.replace(".jar", "") + '-' + jar.file.path.hashCode()
+                    output = outputProvider.getContentLocation(outputFileName, outputTypes, scopes, Format.JAR)
                     FileUtils.copyFile(jar.file, output)
                 } else {
                     files.add(jar.file)
@@ -86,7 +88,7 @@ public class AspectJTransform extends Transform {
         }
 
         // copy excluded files for other transforms' usage later
-        output = outputProvider.getContentLocation(name, outputTypes, scopes, Format.DIRECTORY);
+        output = outputProvider.getContentLocation("main", outputTypes, scopes, Format.DIRECTORY);
 
         //evaluate class paths
         final String inpath = Joiner.on(File.pathSeparator).join(files)
