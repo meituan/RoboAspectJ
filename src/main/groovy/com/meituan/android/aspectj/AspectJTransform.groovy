@@ -9,6 +9,7 @@ import com.google.common.collect.Sets
 import org.apache.commons.io.FileUtils
 import org.aspectj.bridge.IMessage
 import org.aspectj.bridge.MessageHandler
+import org.aspectj.bridge.Version
 import org.aspectj.tools.ajc.Main
 import org.gradle.api.GradleException
 import org.gradle.api.Project
@@ -16,14 +17,13 @@ import org.gradle.api.artifacts.ExcludeRule
 import org.gradle.api.logging.Logger
 
 /**
- * <p>The main work of this {@link com.android.build.api.transform.Transform} implementation is to
- * do the AspectJ binary weaving at build time.</p>
+ * <p>The main job of this {@link com.android.build.api.transform.Transform} implementation is to
+ * do the AspectJ build-time binary weaving.</p>
  *
  * <p>Tranform system in android plugin offers us a good timing to manipulate byte codes. So we
- * interpose weaving in the way of turning class files to dex files, specifically speaking, right
- * after the system extracts byte codes from project, sub projects, dependencies, etc.. Note
- * that aspect and real java codes are both literally written in Java, we don't have to separate
- * them apart. So ajc aspect path and inpath should be identical. </p>
+ * interpose weaving in the way of class to dex. It's better to apply it before any other transform
+ * processes the binary since we are based on the package info to do the excluding otherwise the
+ * info may lose.</p>
  *
  * <p>Created by Xiz on 9/21, 2015.</p>
  */
@@ -44,61 +44,79 @@ public class AspectJTransform extends Transform {
 
     @Override
     void transform(Context context, Collection<TransformInput> inputs, Collection<TransformInput> referencedInputs, TransformOutputProvider outputProvider, boolean isIncremental) throws IOException, TransformException, InterruptedException {
+        List<File> files = Lists.newArrayList()
+        List<File> excludeFiles = Lists.newArrayList()
         Logger logger = project.getLogger()
         File output = null;
 
-        // grab java runtime jar
+        logger.quiet "AspectJ Compiler, version " + Version.text
+
+        // clean
+        outputProvider.deleteAll()
+
+        // fetch java runtime classpath
         String javaRtPath = null
-        project.android.applicationVariants.all {
-            String javaRt = Joiner.on(File.separator).join(['jre', 'lib', 'rt.jar'])
-            for (String classpath : javaCompiler.classpath.asPath.split(File.pathSeparator)) {
-                if (classpath.contains(javaRt)) {
-                    javaRtPath = classpath
+        if (project.aspectj.javartNeeded) {
+            project.android.applicationVariants.all {
+                String javaRt = Joiner.on(File.separator).join(['jre', 'lib', 'rt.jar'])
+                for (String classpath : javaCompiler.classpath.asPath.split(File.pathSeparator)) {
+                    if (classpath.contains(javaRt)) {
+                        javaRtPath = classpath
+                    }
                 }
+            }
+            if (Strings.isNullOrEmpty(javaRtPath)) {
+                logger.error 'Can not extract java runtime classpath from android plugin.'
             }
         }
 
-        // categorize bytecode files
-        List<File> files = Lists.newArrayList()
-        List<File> excludeFiles = Lists.newArrayList()
+        // categorize bytecode files and excluded files for other transforms' usage later
+        logger.quiet 'Excluding dependency from AspectJ Compiler inpath ...'
+        logger.quiet 'Note: the excluded ones will not be eliminated from the compilation.' +
+                        'They\'ve just been used as classpath instead.'
+        boolean nothingExcluded = true
         for (TransformInput input : inputs) {
             for (DirectoryInput folder : input.directoryInputs) {
                 if (isFileExcluded(folder.file)) {
+                    logger.quiet "Folder [" + folder.file.name + "] has been excluded."
+                    nothingExcluded = false
                     excludeFiles.add(folder.file)
                     String outputFileName = folder.name + '-' + folder.file.path.hashCode()
                     output = outputProvider.getContentLocation(outputFileName, outputTypes, scopes, Format.DIRECTORY)
                     FileUtils.copyDirectoryToDirectory(folder.file, output)
                 } else {
                     files.add(folder.file)
-
                 }
             }
 
             for (JarInput jar : input.jarInputs) {
                 if (isFileExcluded(jar.file)) {
+                    logger.quiet "Jar [" + jar.file.name + "] has been excluded."
+                    nothingExcluded = false
                     excludeFiles.add(jar.file)
                     String outputFileName = jar.name.replace(".jar", "") + '-' + jar.file.path.hashCode()
                     output = outputProvider.getContentLocation(outputFileName, outputTypes, scopes, Format.JAR)
                     FileUtils.copyFile(jar.file, output)
                 } else {
                     files.add(jar.file)
-
                 }
             }
         }
-
-        // copy excluded files for other transforms' usage later
-        output = outputProvider.getContentLocation("main", outputTypes, scopes, Format.DIRECTORY);
+        if (nothingExcluded) {
+            logger.quiet "Nothing excluded."
+        }
 
         //evaluate class paths
         final String inpath = Joiner.on(File.pathSeparator).join(files)
         final String classpath = Joiner.on(File.pathSeparator).join(
-                project.aspectj.javartNeeded && !Strings.isNullOrEmpty(javaRtPath) ?
+                        !Strings.isNullOrEmpty(javaRtPath) ?
                         [*excludeFiles.collect { it.absolutePath }, javaRtPath] :
                         excludeFiles.collect { it.absolutePath })
         final String bootpath = Joiner.on(File.pathSeparator).join(project.android.bootClasspath)
+        output = outputProvider.getContentLocation("main", outputTypes, scopes, Format.DIRECTORY);
 
         // assemble compile options
+        logger.quiet "Weaving ..."
         def args = [
                 "-source", project.aspectj.compileOptions.sourceCompatibility.name,
                 "-target", project.aspectj.compileOptions.targetCompatibility.name,
@@ -120,17 +138,20 @@ public class AspectJTransform extends Transform {
 
         // log compile
         for (IMessage message : handler.getMessages(null, true)) {
-            // level up weave info log for debug
-//            logger.quiet(message.getMessage())
-            if (IMessage.ERROR.isSameOrLessThan(message.getKind())) {
-                logger.error(message.getMessage(), message.getThrown())
-                throw new GradleException(message.message, message.thrown)
-            } else if (IMessage.WARNING.isSameOrLessThan(message.getKind())) {
-                logger.warn(message.getMessage())
-            } else if (IMessage.DEBUG.isSameOrLessThan(message.getKind())) {
-                logger.info(message.getMessage())
+            if (project.aspectj.verbose) {
+                // level up weave info log for debug
+                logger.quiet(message.getMessage())
             } else {
-                logger.debug(message.getMessage())
+                if (IMessage.ERROR.isSameOrLessThan(message.kind)) {
+                    logger.error(message.message, message.thrown)
+                    throw new GradleException(message.message, message.thrown)
+                } else if (IMessage.WARNING.isSameOrLessThan(message.kind)) {
+                    logger.warn message.message
+                } else if (IMessage.DEBUG.isSameOrLessThan(message.kind)) {
+                    logger.info message.message
+                } else {
+                    logger.debug message.message
+                }
             }
         }
     }
@@ -138,7 +159,7 @@ public class AspectJTransform extends Transform {
     @NonNull
     @Override
     public String getName() {
-        "aspectJ"
+        "AspectJ"
     }
 
     @NonNull

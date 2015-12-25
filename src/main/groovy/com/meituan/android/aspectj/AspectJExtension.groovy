@@ -4,37 +4,39 @@ import com.android.build.gradle.internal.CompileOptions
 import org.gradle.api.Action
 import org.gradle.api.artifacts.ExcludeRule
 import org.gradle.api.artifacts.ExcludeRuleContainer
-import org.gradle.api.internal.artifacts.DefaultExcludeRuleContainer;
+import org.gradle.api.internal.artifacts.DefaultExcludeRuleContainer
 
 /**
  * Created by Xiz on Oct 28, 2015.
  */
 class AspectJExtension {
-    private ExcludeRuleContainer excludeRuleContainer = new DefaultExcludeRuleContainer();
+    private ExcludeRuleContainer excludeRuleContainer = new DefaultExcludeRuleContainer()
 
-    private CompileOptions compileOptions = new CompileOptions();
+    private CompileOptions compileOptions = new CompileOptions()
 
     // when rxjava in use, ajc requires jre rt.java as its classpath. Or an error will be issued.
-    private boolean javartNeeded = false;
+    private boolean javartNeeded = false
+
+    private boolean verbose = false
 
     public void exclude(Map<String, String> excludeProperties) {
-        excludeRuleContainer.add(excludeProperties);
+        excludeRuleContainer.add(excludeProperties)
     }
 
     public Set<ExcludeRule> getExcludeRules() {
-        return excludeRuleContainer.getRules();
+        return excludeRuleContainer.getRules()
     }
 
     private void setExcludeRuleContainer(ExcludeRuleContainer excludeRuleContainer) {
-        this.excludeRuleContainer = excludeRuleContainer;
+        this.excludeRuleContainer = excludeRuleContainer
     }
 
     public void compileOptions(Action<CompileOptions> action) {
-        action.execute(compileOptions);
+        action.execute(compileOptions)
     }
 
     public CompileOptions getCompileOptions() {
-        return compileOptions;
+        return compileOptions
     }
 
     boolean getJavartNeeded() {
@@ -43,5 +45,13 @@ class AspectJExtension {
 
     void setJavartNeeded(boolean javartNeeded) {
         this.javartNeeded = javartNeeded
+    }
+
+    boolean getVerbose() {
+        return verbose
+    }
+
+    void setVerbose(boolean verbose) {
+        this.verbose = verbose
     }
 }

@@ -12,17 +12,7 @@ import org.gradle.api.Project
  * And every aspect in such places will also be woven into all byte codes. This case is much more
  * like you mix them up since plugin treats them in an undifferentiated way.</p>
  *
- * <h3>Usage</h3>
- * <p>apply this after you apply android application plugin in your build script.</p>
- *
- * <h3>Prerequisite</h3>
- * <ul>
- *
- * <li>Write your aspects in Aspect Annotation (@Aspect) syntax</li>
- *
- * <li>Apply android gradle plugin 1.5.0 or higher.</li>
- *
- * </ul>
+ * <p>For more information, check the readme.</p>
  *
  * <p>Created by Xiz on 9/21, 2015.</p>
  */
