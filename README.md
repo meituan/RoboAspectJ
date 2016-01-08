@@ -7,6 +7,7 @@ This means project source, external lib, subproject source and local dependencie
 
 > Note: This plugin may change due to the modification of [transform-api](http://tools.android.com/tech-docs/new-build-system/transform-api). So you may keep track of RoboAspectJ to make sure you're using the most recent version.
 
+current version: **v0.8.5**
 
 Apply
 -----
@@ -88,10 +89,22 @@ aspectj {
 When applying `rxjava` or `retrolambda`, you may need `jrt.jar` as classpath. Configure it by:
 
 ``` groovy
-aspectj{
+aspectj {
 	javartNeeded true
 }
 ```
+
+### Disable
+
+For debug or performance use, you can disable weaving:
+
+``` groovy
+aspectj {
+    enable false    //by default, it's true and you don't have to add this statement.
+}
+```
+
+> Note: Aspects, AspectJ compile dependencies are all still there, they are just not being woven.
 
 Prerequisite
 -----

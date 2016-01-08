@@ -4,6 +4,7 @@ import com.android.annotations.NonNull
 import com.android.build.api.transform.*
 import com.google.common.base.Joiner
 import com.google.common.base.Strings
+import com.google.common.collect.ImmutableSet
 import com.google.common.collect.Lists
 import com.google.common.collect.Sets
 import org.apache.commons.io.FileUtils
@@ -28,7 +29,7 @@ import org.gradle.api.logging.Logger
  * <p>Created by Xiz on 9/21, 2015.</p>
  */
 public class AspectJTransform extends Transform {
-    private static final Set<QualifiedContent.ContentType> COTNENT_CLASS = Sets.immutableEnumSet(QualifiedContent.DefaultContentType.CLASSES)
+    private static final Set<QualifiedContent.ContentType> CONTENT_CLASS = Sets.immutableEnumSet(QualifiedContent.DefaultContentType.CLASSES)
     private static final Set<QualifiedContent.Scope> SCOPE_FULL_PROJECT = Sets.immutableEnumSet(
             QualifiedContent.Scope.PROJECT,
             QualifiedContent.Scope.PROJECT_LOCAL_DEPS,
@@ -45,14 +46,20 @@ public class AspectJTransform extends Transform {
     @Override
     void transform(Context context, Collection<TransformInput> inputs, Collection<TransformInput> referencedInputs, TransformOutputProvider outputProvider, boolean isIncremental) throws IOException, TransformException, InterruptedException {
         List<File> files = Lists.newArrayList()
-        List<File> excludeFiles = Lists.newArrayList()
+        List<File> classpathFiles = Lists.newArrayList()
         Logger logger = project.getLogger()
         File output = null;
 
-        logger.quiet "AspectJ Compiler, version " + Version.text
-
         // clean
         outputProvider.deleteAll()
+
+        // in case it's executed when disabled
+        if (!project.aspectj.enabled) {
+            logger.quiet 'AspectJ Weaving is disabled.'
+            return
+        }
+
+        logger.quiet "AspectJ Compiler, version " + Version.text
 
         // fetch java runtime classpath
         String javaRtPath = null
@@ -71,16 +78,27 @@ public class AspectJTransform extends Transform {
         }
 
         // categorize bytecode files and excluded files for other transforms' usage later
-        logger.quiet 'Excluding dependency from AspectJ Compiler inpath ...'
-        logger.quiet 'Note: the excluded ones will not be eliminated from the compilation.' +
-                        'They\'ve just been used as classpath instead.'
+        logger.quiet 'Excluding dependencies from AspectJ Compiler inpath ...'
+        logger.quiet 'Note: The excluded will not be eliminated from the compilation.' +
+                        ' They\'re just being used as classpath instead.'
+
+        for (TransformInput input : referencedInputs) {
+            input.directoryInputs.each {
+                classpathFiles.add(it.file)
+            }
+
+            input.jarInputs.each {
+                classpathFiles.add(it.file)
+            }
+        }
+
         boolean nothingExcluded = true
         for (TransformInput input : inputs) {
             for (DirectoryInput folder : input.directoryInputs) {
                 if (isFileExcluded(folder.file)) {
                     logger.quiet "Folder [" + folder.file.name + "] has been excluded."
                     nothingExcluded = false
-                    excludeFiles.add(folder.file)
+                    classpathFiles.add(folder.file)
                     String outputFileName = folder.name + '-' + folder.file.path.hashCode()
                     output = outputProvider.getContentLocation(outputFileName, outputTypes, scopes, Format.DIRECTORY)
                     FileUtils.copyDirectoryToDirectory(folder.file, output)
@@ -93,7 +111,7 @@ public class AspectJTransform extends Transform {
                 if (isFileExcluded(jar.file)) {
                     logger.quiet "Jar [" + jar.file.name + "] has been excluded."
                     nothingExcluded = false
-                    excludeFiles.add(jar.file)
+                    classpathFiles.add(jar.file)
                     String outputFileName = jar.name.replace(".jar", "") + '-' + jar.file.path.hashCode()
                     output = outputProvider.getContentLocation(outputFileName, outputTypes, scopes, Format.JAR)
                     FileUtils.copyFile(jar.file, output)
@@ -109,9 +127,9 @@ public class AspectJTransform extends Transform {
         //evaluate class paths
         final String inpath = Joiner.on(File.pathSeparator).join(files)
         final String classpath = Joiner.on(File.pathSeparator).join(
-                        !Strings.isNullOrEmpty(javaRtPath) ?
-                        [*excludeFiles.collect { it.absolutePath }, javaRtPath] :
-                        excludeFiles.collect { it.absolutePath })
+                                    !Strings.isNullOrEmpty(javaRtPath) ?
+                                    [*classpathFiles.collect { it.absolutePath }, javaRtPath] :
+                                    classpathFiles.collect { it.absolutePath })
         final String bootpath = Joiner.on(File.pathSeparator).join(project.android.bootClasspath)
         output = outputProvider.getContentLocation("main", outputTypes, scopes, Format.DIRECTORY);
 
@@ -165,13 +183,18 @@ public class AspectJTransform extends Transform {
     @NonNull
     @Override
     public Set<QualifiedContent.ContentType> getInputTypes() {
-        COTNENT_CLASS
+        CONTENT_CLASS
     }
 
     @NonNull
     @Override
     public Set<QualifiedContent.Scope> getScopes() {
-        SCOPE_FULL_PROJECT
+        project.aspectj.enabled ? SCOPE_FULL_PROJECT : ImmutableSet.of()
+    }
+
+    @Override
+    Set<QualifiedContent.Scope> getReferencedScopes() {
+        return Sets.immutableEnumSet(QualifiedContent.Scope.PROVIDED_ONLY)
     }
 
     @Override

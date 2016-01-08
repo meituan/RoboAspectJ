@@ -19,6 +19,8 @@ class AspectJExtension {
 
     private boolean verbose = false
 
+    private boolean enabled = true
+
     public void exclude(Map<String, String> excludeProperties) {
         excludeRuleContainer.add(excludeProperties)
     }
@@ -27,12 +29,12 @@ class AspectJExtension {
         return excludeRuleContainer.getRules()
     }
 
-    private void setExcludeRuleContainer(ExcludeRuleContainer excludeRuleContainer) {
-        this.excludeRuleContainer = excludeRuleContainer
-    }
-
     public void compileOptions(Action<CompileOptions> action) {
         action.execute(compileOptions)
+    }
+
+    void setCompileOptions(CompileOptions compileOptions) {
+        this.compileOptions = compileOptions
     }
 
     public CompileOptions getCompileOptions() {
@@ -53,5 +55,13 @@ class AspectJExtension {
 
     void setVerbose(boolean verbose) {
         this.verbose = verbose
+    }
+
+    boolean getEnabled() {
+        return enabled
+    }
+
+    void setEnabled(boolean enabled) {
+        this.enabled = enabled
     }
 }
