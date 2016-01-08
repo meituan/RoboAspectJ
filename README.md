@@ -7,7 +7,7 @@ This means project source, external lib, subproject source and local dependencie
 
 > Note: This plugin may change due to the modification of [transform-api](http://tools.android.com/tech-docs/new-build-system/transform-api). So you may keep track of RoboAspectJ to make sure you're using the most recent version.
 
-current version: **v0.8.5**
+current version: **v0.8.6**
 
 Apply
 -----
@@ -101,6 +101,14 @@ For debug or performance use, you can disable weaving:
 ``` groovy
 aspectj {
     enable false    //by default, it's true and you don't have to add this statement.
+}
+```
+
+Or, you want it to be smarter to disable it when it's a debug flavor:
+
+``` groovy
+aspectj {
+    disableWhenDebug true // default is false
 }
 ```
 

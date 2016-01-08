@@ -2,6 +2,7 @@ package com.meituan.android.aspectj
 
 import com.android.annotations.NonNull
 import com.android.build.api.transform.*
+import com.android.build.gradle.internal.pipeline.TransformTask
 import com.google.common.base.Joiner
 import com.google.common.base.Strings
 import com.google.common.collect.ImmutableSet
@@ -53,10 +54,31 @@ public class AspectJTransform extends Transform {
         // clean
         outputProvider.deleteAll()
 
-        // in case it's executed when disabled
-        if (!project.aspectj.enabled) {
-            logger.quiet 'AspectJ Weaving is disabled.'
-            return
+        // disable when debug
+        if (project.aspectj.disableWhenDebug) {
+            if (context instanceof TransformTask) {
+                TransformTask task = (TransformTask) context
+                List parts = Arrays.asList(task.name.split('(For)'))
+                if (parts.size()>=2 && parts.get(1).contains('Debug')) {
+                    logger.quiet 'AspectJ Weaving is disabled when debuging.'
+                    for (TransformInput input : inputs) {
+                        input.directoryInputs.each {
+                            String outputFileName = it.name + '-' + it.file.path.hashCode()
+                            output = outputProvider.getContentLocation(outputFileName, outputTypes, scopes, Format.DIRECTORY)
+                            FileUtils.copyDirectoryToDirectory(it.file, output)
+                        }
+
+                        input.jarInputs.each {
+                            String outputFileName = it.name.replace(".jar", "") + '-' + it.file.path.hashCode()
+                            output = outputProvider.getContentLocation(outputFileName, outputTypes, scopes, Format.JAR)
+                            FileUtils.copyFile(it.file, output)
+                        }
+                    }
+                    return
+                }
+            }
+
+            logger.quiet 'Can\'t determine whether flavor is debug. Weaving continues.'
         }
 
         logger.quiet "AspectJ Compiler, version " + Version.text

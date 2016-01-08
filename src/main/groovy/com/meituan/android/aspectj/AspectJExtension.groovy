@@ -21,6 +21,8 @@ class AspectJExtension {
 
     private boolean enabled = true
 
+    private boolean disableWhenDebug = false
+
     public void exclude(Map<String, String> excludeProperties) {
         excludeRuleContainer.add(excludeProperties)
     }
@@ -63,5 +65,13 @@ class AspectJExtension {
 
     void setEnabled(boolean enabled) {
         this.enabled = enabled
+    }
+
+    boolean getDisableWhenDebug() {
+        return disableWhenDebug
+    }
+
+    void setDisableWhenDebug(boolean disableWhenDebug) {
+        this.disableWhenDebug = disableWhenDebug
     }
 }
