@@ -15,13 +15,9 @@ Add plugin dependency in buildscript classpath:
 
 ``` groovy
 buildscript {
-	repositories {
-		// your repo
-	}
-
-	classpath {
+    dependencies {
         classpath 'com.meituan.gradle:roboaspectj:0.8.+'
-
+    }
 }
 ```
 
