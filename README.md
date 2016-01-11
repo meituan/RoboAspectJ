@@ -1,13 +1,18 @@
 RoboAspectJ
 =====
 
-This is a Gradle plugin enables [Android Plugin](http://developer.android.com/tools/revisions/gradle-plugin.html)
-to compile AspectJ code(if needed) and then weave them into production code in **FULL-PROJECT** scope.
-This means project source, external lib, subproject source and local dependencies will all be dealt with by default.
+RoboAspectJ is a Gradle plugin to introduce [AspectJ](https://eclipse.org/aspectj/) (**A**spect-**O**rient **P**rogramming) to Android project.
+It compiles aspects(if needed) and weave them all together in **FULL-PROJECT** scope. This means project
+(or subproject) sources, external libraries and local dependencies will all be dealt with by default.
 
-> Note: This plugin may change due to the modification of [transform-api](http://tools.android.com/tech-docs/new-build-system/transform-api). So you may keep track of RoboAspectJ to make sure you're using the most recent version.
+> Note: This plugin may change due to the modification of [transform-api](http://tools.android.com/tech-docs/new-build-system/transform-api).
+> So you may keep track of RoboAspectJ to make sure you're using the most recent version.
 
 current version: **v0.8.6**
+
+Prerequisite
+-----
+[Android Plugin](http://developer.android.com/tools/revisions/gradle-plugin.html) (application) 1.5.0
 
 Apply
 -----
@@ -37,7 +42,7 @@ write aspects in **@AspectJ syntax** under your project's java source directory.
 
 ### As Library
 
-compile and bundle your aspects independently using ajc, then make it dependency in build script. Example:
+compile and bundle your aspects independently using ajc, then make it dependency in build script. For example:
 
 ``` groovy
 compile 'com.example.myaspects:library:1.0'
@@ -109,10 +114,6 @@ aspectj {
 ```
 
 > Note: Aspects, AspectJ compile dependencies are all still there, they are just not being woven.
-
-Prerequisite
------
-Android plugin (application) 1.5.0
 
 License
 -------
