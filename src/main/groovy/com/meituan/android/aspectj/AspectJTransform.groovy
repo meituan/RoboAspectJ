@@ -65,7 +65,7 @@ public class AspectJTransform extends Transform {
                         input.directoryInputs.each {
                             String outputFileName = it.name + '-' + it.file.path.hashCode()
                             output = outputProvider.getContentLocation(outputFileName, outputTypes, scopes, Format.DIRECTORY)
-                            FileUtils.copyDirectoryToDirectory(it.file, output)
+                            FileUtils.copyDirectory(it.file, output)
                         }
 
                         input.jarInputs.each {
@@ -100,8 +100,8 @@ public class AspectJTransform extends Transform {
         }
 
         // categorize bytecode files and excluded files for other transforms' usage later
-        logger.quiet 'Excluding dependencies from AspectJ Compiler inpath ...'
-        logger.quiet 'Note: The excluded will not be eliminated from the compilation.' +
+        logger.quiet 'Excluding ...'
+        logger.quiet 'Note: The excluded dependencies will not be eliminated from the compilation.' +
                         ' They\'re just being used as classpath instead.'
 
         for (TransformInput input : referencedInputs) {
@@ -123,7 +123,7 @@ public class AspectJTransform extends Transform {
                     classpathFiles.add(folder.file)
                     String outputFileName = folder.name + '-' + folder.file.path.hashCode()
                     output = outputProvider.getContentLocation(outputFileName, outputTypes, scopes, Format.DIRECTORY)
-                    FileUtils.copyDirectoryToDirectory(folder.file, output)
+                    FileUtils.copyDirectory(folder.file, output)
                 } else {
                     files.add(folder.file)
                 }
@@ -199,7 +199,7 @@ public class AspectJTransform extends Transform {
     @NonNull
     @Override
     public String getName() {
-        "AspectJ"
+        "aspectJ"
     }
 
     @NonNull
@@ -211,7 +211,7 @@ public class AspectJTransform extends Transform {
     @NonNull
     @Override
     public Set<QualifiedContent.Scope> getScopes() {
-        project.aspectj.enabled ? SCOPE_FULL_PROJECT : ImmutableSet.of()
+        project.aspectj.enable ? SCOPE_FULL_PROJECT : ImmutableSet.of()
     }
 
     @Override

@@ -19,7 +19,7 @@ class AspectJExtension {
 
     private boolean verbose = false
 
-    private boolean enabled = true
+    private boolean enable = true
 
     private boolean disableWhenDebug = false
 
@@ -59,12 +59,12 @@ class AspectJExtension {
         this.verbose = verbose
     }
 
-    boolean getEnabled() {
-        return enabled
+    boolean getEnable() {
+        return enable
     }
 
-    void setEnabled(boolean enabled) {
-        this.enabled = enabled
+    void setEnable(boolean enabled) {
+        this.enable = enabled
     }
 
     boolean getDisableWhenDebug() {

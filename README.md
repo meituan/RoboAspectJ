@@ -8,7 +8,7 @@ It compiles aspects(if needed) and weave them all together in **FULL-PROJECT** s
 > Note: This plugin may change due to the modification of [transform-api](http://tools.android.com/tech-docs/new-build-system/transform-api).
 > So you may keep track of RoboAspectJ to make sure you're using the most recent version.
 
-current version: **v0.8.6**
+current version: **v0.8.7**
 
 Prerequisite
 -----
