@@ -30,6 +30,9 @@ import org.gradle.api.logging.Logger
  * <p>Created by Xiz on 9/21, 2015.</p>
  */
 public class AspectJTransform extends Transform {
+    public static final String PROPERTY_ENABLE = 'roboaspectj.enable'
+    public static final String PROPERTY_DISABLE_WHEN_DEBUG = 'roboaspectj.disableWhenDebug'
+
     private static final Set<QualifiedContent.ContentType> CONTENT_CLASS = Sets.immutableEnumSet(QualifiedContent.DefaultContentType.CLASSES)
     private static final Set<QualifiedContent.Scope> SCOPE_FULL_PROJECT = Sets.immutableEnumSet(
             QualifiedContent.Scope.PROJECT,
@@ -48,18 +51,19 @@ public class AspectJTransform extends Transform {
     void transform(Context context, Collection<TransformInput> inputs, Collection<TransformInput> referencedInputs, TransformOutputProvider outputProvider, boolean isIncremental) throws IOException, TransformException, InterruptedException {
         List<File> files = Lists.newArrayList()
         List<File> classpathFiles = Lists.newArrayList()
-        Logger logger = project.getLogger()
+        Logger logger = project.logger
         File output = null;
 
         // clean
         outputProvider.deleteAll()
 
         // disable when debug
-        if (project.aspectj.disableWhenDebug) {
+        if ((null != System.getProperty(PROPERTY_DISABLE_WHEN_DEBUG) && Boolean.getBoolean(PROPERTY_DISABLE_WHEN_DEBUG)) ||
+                (null == System.getProperty(PROPERTY_DISABLE_WHEN_DEBUG) && project.aspectj.disableWhenDebug)) {
             if (context instanceof TransformTask) {
                 TransformTask task = (TransformTask) context
                 List parts = Arrays.asList(task.name.split('(For)'))
-                if (parts.size()>=2 && parts.get(1).contains('Debug')) {
+                if (parts.size() >= 2 && parts.get(1).contains('Debug')) {
                     logger.quiet 'AspectJ Weaving is disabled when debuging.'
                     for (TransformInput input : inputs) {
                         input.directoryInputs.each {
@@ -211,7 +215,11 @@ public class AspectJTransform extends Transform {
     @NonNull
     @Override
     public Set<QualifiedContent.Scope> getScopes() {
-        project.aspectj.enable ? SCOPE_FULL_PROJECT : ImmutableSet.of()
+        if (null != System.getProperty(PROPERTY_ENABLE)) {
+            return Boolean.getBoolean(PROPERTY_ENABLE) ? SCOPE_FULL_PROJECT : ImmutableSet.of()
+        } else {
+            return project.aspectj.enable ? SCOPE_FULL_PROJECT : ImmutableSet.of()
+        }
     }
 
     @Override

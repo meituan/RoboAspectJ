@@ -8,7 +8,7 @@ It compiles aspects(if needed) and weave them all together in **FULL-PROJECT** s
 > Note: This plugin may change due to the modification of [transform-api](http://tools.android.com/tech-docs/new-build-system/transform-api).
 > So you may keep track of RoboAspectJ to make sure you're using the most recent version.
 
-current version: **v0.8.8**
+current version: **v0.8.9**
 
 Prerequisite
 -----
@@ -98,14 +98,18 @@ aspectj {
 ### Disable
 
 For debug or performance use, you can disable weaving:
-
 ``` groovy
 aspectj {
     enable false    //by default, it's true and you don't have to add this statement.
 }
 ```
+alternatively, set `roboaspectj.enable` property `false` when run gradle.
 
-Or, you want it to be smarter to disable it when it's a debug flavor:
+```
+$ gradle clean assembleDebug -Droboaspectj.enable=false
+```
+Maybe you want it to be smarter to disable it when it's a debug flavor, then add this to your build
+script:
 
 ``` groovy
 aspectj {
@@ -113,7 +117,18 @@ aspectj {
 }
 ```
 
-> Note: Aspects, AspectJ compile dependencies are all still there, they are just not being woven.
+or, specify `roboaspectj.disableWhenDebug` property.
+
+```
+$ gradle clean assembleDebug -Droboaspectj.disableWhenDebug=true
+```
+
+Though weaving is disabled, Aspects and AspectJ compile dependencies are all still there. It's only
+the weaving step doesn't happen.
+
+> Note: Corresponding property has precedence over config in build script in both of these 2 cases.
+For instance, weaving will not take effect when your `roboaspectj.enable` property is `false`,
+no matter what you config in build script.
 
 License
 -------
