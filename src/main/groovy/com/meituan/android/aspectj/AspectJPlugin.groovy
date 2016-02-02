@@ -31,7 +31,7 @@ class AspectJPlugin implements Plugin<Project> {
     protected void configureProject() {
         project.android.registerTransform(new AspectJTransform(project))
         project.dependencies {
-            compile 'org.aspectj:aspectjrt:1.8.7'
+            compile 'org.aspectj:aspectjrt:1.8.8'
         }
     }
 
