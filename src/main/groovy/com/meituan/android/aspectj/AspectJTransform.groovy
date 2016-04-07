@@ -68,13 +68,13 @@ public class AspectJTransform extends Transform {
                     for (TransformInput input : inputs) {
                         input.directoryInputs.each {
                             String outputFileName = it.name + '-' + it.file.path.hashCode()
-                            output = outputProvider.getContentLocation(outputFileName, outputTypes, scopes, Format.DIRECTORY)
+                            output = outputProvider.getContentLocation(outputFileName, it.contentTypes, it.scopes, Format.DIRECTORY)
                             FileUtils.copyDirectory(it.file, output)
                         }
 
                         input.jarInputs.each {
                             String outputFileName = it.name.replace(".jar", "") + '-' + it.file.path.hashCode()
-                            output = outputProvider.getContentLocation(outputFileName, outputTypes, scopes, Format.JAR)
+                            output = outputProvider.getContentLocation(outputFileName, it.contentTypes, it.scopes, Format.JAR)
                             FileUtils.copyFile(it.file, output)
                         }
                     }
@@ -126,7 +126,7 @@ public class AspectJTransform extends Transform {
                     nothingExcluded = false
                     classpathFiles.add(folder.file)
                     String outputFileName = folder.name + '-' + folder.file.path.hashCode()
-                    output = outputProvider.getContentLocation(outputFileName, outputTypes, scopes, Format.DIRECTORY)
+                    output = outputProvider.getContentLocation(outputFileName, folder.contentTypes, folder.scopes, Format.DIRECTORY)
                     FileUtils.copyDirectory(folder.file, output)
                 } else {
                     files.add(folder.file)
@@ -139,7 +139,7 @@ public class AspectJTransform extends Transform {
                     nothingExcluded = false
                     classpathFiles.add(jar.file)
                     String outputFileName = jar.name.replace(".jar", "") + '-' + jar.file.path.hashCode()
-                    output = outputProvider.getContentLocation(outputFileName, outputTypes, scopes, Format.JAR)
+                    output = outputProvider.getContentLocation(outputFileName, jar.contentTypes, jar.scopes, Format.JAR)
                     FileUtils.copyFile(jar.file, output)
                 } else {
                     files.add(jar.file)
@@ -157,7 +157,7 @@ public class AspectJTransform extends Transform {
                                     [*classpathFiles.collect { it.absolutePath }, javaRtPath] :
                                     classpathFiles.collect { it.absolutePath })
         final String bootpath = Joiner.on(File.pathSeparator).join(project.android.bootClasspath)
-        output = outputProvider.getContentLocation("main", outputTypes, scopes, Format.DIRECTORY);
+        output = outputProvider.getContentLocation("main", outputTypes, Sets.immutableEnumSet(QualifiedContent.Scope.PROJECT), Format.DIRECTORY);
 
         // assemble compile options
         logger.quiet "Weaving ..."
