@@ -8,11 +8,11 @@ It compiles aspects(if needed) and weave them all together in **FULL-PROJECT** s
 > Note: This plugin may change due to the modification of [transform-api](http://tools.android.com/tech-docs/new-build-system/transform-api).
 > So you may keep track of RoboAspectJ to make sure you're using the most recent version.
 
-current version: **v0.8.10**
+latest version: **v0.9.0**
 
 Prerequisite
 -----
-[Android Plugin](http://developer.android.com/tools/revisions/gradle-plugin.html) (application) 1.5.0
+[Android Plugin](http://developer.android.com/tools/revisions/gradle-plugin.html) (application) 2.1.0
 
 Apply
 -----
@@ -21,7 +21,7 @@ Add plugin dependency in buildscript classpath:
 ``` groovy
 buildscript {
     dependencies {
-        classpath 'com.meituan.gradle:roboaspectj:0.8.+'
+        classpath 'com.meituan.gradle:roboaspectj:0.9.+'
     }
 }
 ```
