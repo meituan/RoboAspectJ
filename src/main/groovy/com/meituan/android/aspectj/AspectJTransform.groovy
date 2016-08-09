@@ -168,6 +168,7 @@ public class AspectJTransform extends Transform {
                 "-encoding", project.aspectj.compileOptions.encoding,
                 "-inpath", inpath,
                 "-d", output.absolutePath,
+                "-Xset:generateNewLocalVariableTables=false", // for fixing problems with dex, see https://bugs.eclipse.org/bugs/show_bug.cgi?id=470658
                 "-bootclasspath", bootpath]
 
         // append classpath argument if any
