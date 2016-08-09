@@ -23,6 +23,8 @@ class AspectJExtension {
 
     private boolean disableWhenDebug = false
 
+    private XLintLevel xlintLevel = XLintLevel.ERROR
+
     public void exclude(Map<String, String> excludeProperties) {
         excludeRuleContainer.add(excludeProperties)
     }
@@ -73,5 +75,19 @@ class AspectJExtension {
 
     void setDisableWhenDebug(boolean disableWhenDebug) {
         this.disableWhenDebug = disableWhenDebug
+    }
+
+    public void xlintLevel(XLintLevel xlintLevel) {
+        this.xlintLevel = xlintLevel
+    }
+
+    XLintLevel getXlintLevel() {
+        return xlintLevel
+    }
+
+    public enum XLintLevel {
+        IGNORE,
+        WARNING,
+        ERROR
     }
 }
