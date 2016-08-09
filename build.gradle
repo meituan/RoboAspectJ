@@ -6,6 +6,9 @@ group = 'com.meituan.gradle'
 version = '0.9.1'
 description = 'A Gradle plugin to do AspectJ binary weaving in the way of Android class -> dex transform. It works as an augment for Android plugin'
 
+sourceCompatibility = JavaVersion.VERSION_1_7
+targetCompatibility = JavaVersion.VERSION_1_7
+
 repositories {
     jcenter()
     mavenLocal()
