@@ -159,6 +159,8 @@ public class AspectJTransform extends Transform {
         final String bootpath = Joiner.on(File.pathSeparator).join(project.android.bootClasspath)
         output = outputProvider.getContentLocation("main", outputTypes, Sets.immutableEnumSet(QualifiedContent.Scope.PROJECT), Format.DIRECTORY);
 
+        final String xlintLevel = project.aspectj.xlintLevel.toString().toLowerCase()
+
         // assemble compile options
         logger.quiet "Weaving ..."
         def args = [
@@ -168,6 +170,7 @@ public class AspectJTransform extends Transform {
                 "-encoding", project.aspectj.compileOptions.encoding,
                 "-inpath", inpath,
                 "-d", output.absolutePath,
+                "-Xlint:" + xlintLevel,
                 "-bootclasspath", bootpath]
 
         // append classpath argument if any
